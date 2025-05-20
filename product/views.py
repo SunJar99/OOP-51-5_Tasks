@@ -1,8 +1,13 @@
-from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
+from rest_framework.generics import (ListAPIView, RetrieveAPIView,
+                                    CreateAPIView, UpdateAPIView, DestroyAPIView)
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
 from .models import Category, Product, Review
 from .serializers import (CategoryWithProductCountSerializer, ProductWithReviewsSerializer,
-                          ReviewSerializer)
-
+                          ReviewSerializer,
+                          RegisterSerializer, LoginSerializer, ConfirmSerializer)
+from django.contrib.auth import login
 # Category views
 
 class CategoryListView(ListAPIView):
@@ -57,3 +62,31 @@ class ReviewCreateView(CreateAPIView):
 class ReviewUpdateDeleteView(UpdateAPIView, DestroyAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    
+    
+# authentication views
+
+
+class RegisterView(APIView):
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Пользователь зарегистрирован. Проверьте email для подтверждения."}, status=201)
+        return Response(serializer.errors, status=400)
+
+class LoginView(APIView):
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            login(request, serializer.validated_data['user'])
+            return Response({"detail": "Успешный вход."})
+        return Response(serializer.errors, status=400)
+
+class ConfirmView(APIView):
+    def post(self, request):
+        serializer = ConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Пользователь подтвержден."})
+        return Response(serializer.errors, status=400)

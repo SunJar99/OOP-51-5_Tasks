@@ -5,7 +5,8 @@ from .views import (
     ReviewListView, ReviewDetailView,
     CategoryCreateView, CategoryUpdateDeleteView,
     ProductCreateView, ProductUpdateDeleteView,
-    ReviewCreateView, ReviewUpdateDeleteView
+    ReviewCreateView, ReviewUpdateDeleteView,
+    RegisterView, LoginView, ConfirmView
 )
 
 urlpatterns = [
@@ -26,4 +27,9 @@ urlpatterns = [
     path('reviews/<int:pk>/', ReviewDetailView.as_view(), name='review-detail'),
     path('reviews/create/', ReviewCreateView.as_view(), name='review-create'),
     path('reviews/<int:pk>/edit/', ReviewUpdateDeleteView.as_view(), name='review-update-delete'),
+    
+    # Authentication
+    path('users/register/', RegisterView.as_view(), name='user-register'),
+    path('users/login/', LoginView.as_view(), name='user-login'),
+    path('users/confirm/', ConfirmView.as_view(), name='user-confirm'),
 ]
