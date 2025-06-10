@@ -4,12 +4,26 @@ from rest_framework.generics import (
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated, IsAdminUser, BasePermission
+from rest_framework import permissions
 from django.contrib.auth import login
 from .models import Category, Product, Review, User, ConfirmationCode
 from .serializers import (
     CategorySerializer, ProductSerializer, ReviewSerializer,
     RegisterSerializer, LoginSerializer, ConfirmSerializer
 )
+
+# --- Custom Permissions ---
+class IsSuperUser(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_superuser)
+
+class IsStaffOrReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return True
+        return bool(request.user and request.user.is_staff)
+
 
 # --- Category Views ---
 class CategoryListView(ListAPIView):
@@ -23,10 +37,12 @@ class CategoryDetailView(RetrieveAPIView):
 class CategoryCreateView(CreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsSuperUser]
 
 class CategoryUpdateDeleteView(RetrieveUpdateDestroyAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsSuperUser]
 
 # --- Product Views ---
 class ProductListView(ListAPIView):
@@ -49,18 +65,27 @@ class ProductUpdateDeleteView(RetrieveUpdateDestroyAPIView):
 class ReviewListView(ListAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = [permissions.AllowAny]
+
 
 class ReviewDetailView(RetrieveAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = [permissions.AllowAny]
 
 class ReviewCreateView(CreateAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
 
 class ReviewUpdateDeleteView(RetrieveUpdateDestroyAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = [IsStaffOrReadOnly]
 
 # --- User Registration, Login, Confirmation ---
 class RegisterView(CreateAPIView):

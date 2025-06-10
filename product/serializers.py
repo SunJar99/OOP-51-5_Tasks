@@ -98,7 +98,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ['id', 'text', 'stars', 'product']
+        fields = ['id', 'text', 'stars', 'product', 'author']
 
     def validate_text(self, value):
         if not value.strip():

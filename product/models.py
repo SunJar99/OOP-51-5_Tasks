@@ -31,6 +31,7 @@ class Review(models.Model):
     text = models.TextField()
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
     stars = models.PositiveSmallIntegerField(default=1)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
 
     def __str__(self):
         return f"Review for {self.product.title}"
