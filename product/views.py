@@ -1,16 +1,12 @@
 from rest_framework.generics import (
-    ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView, RetrieveUpdateDestroyAPIView
+    ListAPIView, RetrieveAPIView, CreateAPIView, RetrieveUpdateDestroyAPIView
 )
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import SAFE_METHODS, IsAuthenticated, IsAdminUser, BasePermission
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated, BasePermission
 from rest_framework import permissions
 from django.contrib.auth import login
-from .models import Category, Product, Review, User, ConfirmationCode
+from .models import Category, Product, Review
 from .serializers import (
     CategorySerializer, ProductSerializer, ReviewSerializer,
-    RegisterSerializer, LoginSerializer, ConfirmSerializer
 )
 
 # --- Custom Permissions ---
@@ -87,30 +83,3 @@ class ReviewUpdateDeleteView(RetrieveUpdateDestroyAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [IsStaffOrReadOnly]
 
-# --- User Registration, Login, Confirmation ---
-class RegisterView(CreateAPIView):
-    serializer_class = RegisterSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"detail": "User registered. Please confirm your email."}, status=status.HTTP_201_CREATED)
-
-class LoginView(CreateAPIView):
-    serializer_class = LoginSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        login(request, serializer.validated_data['user'])
-        return Response({"detail": "Login successful."})
-
-class ConfirmView(CreateAPIView):
-    serializer_class = ConfirmSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"detail": "User confirmed."})
