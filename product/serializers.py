@@ -1,6 +1,19 @@
 from rest_framework import serializers
 from .models import Category, Product, Review
 
+
+class CategorySerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=255, required=True)
+
+    class Meta:
+        model = Category
+        fields = ['id', 'name']
+
+    def validate_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Category name cannot be empty.")
+        return value
+
 class ProductSerializer(serializers.ModelSerializer):
     title = serializers.CharField(max_length=255, required=True)
     description = serializers.CharField(required=True)

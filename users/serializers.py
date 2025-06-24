@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, User, ConfirmationCode
+from .models import User, ConfirmationCode
 from django.contrib.auth import authenticate
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -56,15 +56,3 @@ class ConfirmSerializer(serializers.Serializer):
         user.save()
         user.confirmation_code.delete()
         return user
-    
-
-    name = serializers.CharField(max_length=255, required=True)
-
-    class Meta:
-        model = Category
-        fields = ['id', 'name']
-
-    def validate_name(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("Название категории не может быть пустым.")
-        return value
