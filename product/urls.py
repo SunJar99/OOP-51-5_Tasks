@@ -6,7 +6,7 @@ from .views import (
     CategoryCreateView, CategoryUpdateDeleteView,
     ProductCreateView, ProductUpdateDeleteView,
     ReviewCreateView, ReviewUpdateDeleteView,
-    RegisterView, LoginView, ConfirmView
+    RegisterView, LoginView, ConfirmUserView
 )
 
 urlpatterns = [
@@ -31,5 +31,5 @@ urlpatterns = [
     # Authentication
     path('users/register/', RegisterView.as_view(), name='user-register'),
     path('users/login/', LoginView.as_view(), name='user-login'),
-    path('users/confirm/', ConfirmView.as_view(), name='user-confirm'),
+    path('users/confirm/', ConfirmUserView.as_view(), name='user-confirm'),
 ]

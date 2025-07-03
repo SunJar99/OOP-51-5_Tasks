@@ -1,3 +1,4 @@
+from django.contrib.auth import authenticate
 from rest_framework.generics import (ListAPIView, RetrieveAPIView,
                                     CreateAPIView, UpdateAPIView, DestroyAPIView)
 from rest_framework.response import Response
@@ -5,9 +6,9 @@ from rest_framework.views import APIView
 from rest_framework import status
 from .models import Category, Product, Review
 from .serializers import (CategoryWithProductCountSerializer, ProductWithReviewsSerializer,
-                          ReviewSerializer,
-                          RegisterSerializer, LoginSerializer, ConfirmSerializer)
+                          ReviewSerializer, RegisterSerializer, LoginSerializer, ConfirmSerializer)
 from django.contrib.auth import login
+from users.models import User
 # Category views
 
 class CategoryListView(ListAPIView):
@@ -64,9 +65,8 @@ class ReviewUpdateDeleteView(UpdateAPIView, DestroyAPIView):
     serializer_class = ReviewSerializer
     
     
-# authentication views
 
-
+# Authentication views
 class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -83,7 +83,7 @@ class LoginView(APIView):
             return Response({"detail": "Успешный вход."})
         return Response(serializer.errors, status=400)
 
-class ConfirmView(APIView):
+class ConfirmUserView(APIView):
     def post(self, request):
         serializer = ConfirmSerializer(data=request.data)
         if serializer.is_valid():
