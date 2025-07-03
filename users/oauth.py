@@ -1,12 +1,19 @@
 from django.shortcuts import redirect
 from django.conf import settings
+from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import requests
 import json
+import random
+import string
 from .models import User
 from rest_framework_simplejwt.tokens import RefreshToken
+
+
+def generate_confirmation_code(length=6):
+    return ''.join(random.choices(string.digits, k=length)) 
 
 # Add these views for Google OAuth
 class GoogleLoginRedirectView(APIView):
@@ -87,7 +94,38 @@ class GoogleLoginCallbackView(APIView):
             if 'family_name' in user_info:
                 user.last_name = user_info['family_name']
             user.save()
+            
+            confirmation_code = generate_confirmation_code()
+            
+            cache.set(f"confirm_code_{user.id}", confirmation_code, timeout=300)
+            return Response({
+                "message": "User registered. Confirmation required.",
+                "user_id": user.id,
+                "confirmation_code": confirmation_code,  # In production, remove this and email it instead
+                "expires_in": "5 minutes"
+            }, status=status.HTTP_201_CREATED)
         
+        # For existing users, check if they're active
+        if not user.is_active:
+            # Get confirmation code from Redis
+            confirmation_code = cache.get(f"confirm_code_{user.id}")
+            if not confirmation_code:
+                # Generate a new code if expired
+                confirmation_code = generate_confirmation_code()
+                cache.set(f"confirm_code_{user.id}", confirmation_code, timeout=300)
+                
+                return Response({
+                    "message": "User needs confirmation. New code generated.",
+                    "user_id": user.id,
+                    "confirmation_code": confirmation_code,  # In production, remove this
+                    "expires_in": "5 minutes"
+                })
+            else:
+                return Response({
+                    "message": "User needs confirmation.",
+                    "user_id": user.id
+                })
+       
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
         
@@ -99,4 +137,43 @@ class GoogleLoginCallbackView(APIView):
                 'username': user.username,
                 'is_active': user.is_active
             }
+        })
+        
+class ConfirmUserView(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        code = request.data.get('code')
+        
+        if not user_id or not code:
+            return Response({"error": "User ID and confirmation code required"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get the code from Redis
+        stored_code = cache.get(f"confirm_code_{user_id}")
+        
+        if not stored_code:
+            return Response({"error": "Confirmation code expired"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if code != stored_code:
+            return Response({"error": "Invalid confirmation code"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Activate the user
+        user.is_active = True
+        user.save()
+        
+        # Delete the code from Redis
+        cache.delete(f"confirm_code_{user_id}")
+        
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            "message": "User confirmed successfully",
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
         })
