@@ -94,17 +94,21 @@ class GoogleLoginCallbackView(APIView):
             if 'family_name' in user_info:
                 user.last_name = user_info['family_name']
             user.save()
-            
+
             confirmation_code = generate_confirmation_code()
-            
             cache.set(f"confirm_code_{user.id}", confirmation_code, timeout=300)
+
+            # Use Celery task to send OTP email asynchronously
+            from .tasks import send_otp_email
+            send_otp_email.delay(user.id, confirmation_code)
+
             return Response({
-                "message": "User registered. Confirmation required.",
+                "message": "User registered. Confirmation code sent to your email.",
                 "user_id": user.id,
-                "confirmation_code": confirmation_code,  # In production, remove this and email it instead
                 "expires_in": "5 minutes"
             }, status=status.HTTP_201_CREATED)
-        
+
+
         # For existing users, check if they're active
         if not user.is_active:
             # Get confirmation code from Redis
@@ -114,15 +118,18 @@ class GoogleLoginCallbackView(APIView):
                 confirmation_code = generate_confirmation_code()
                 cache.set(f"confirm_code_{user.id}", confirmation_code, timeout=300)
                 
+                # Use Celery task to send OTP email asynchronously
+                from .tasks import send_otp_email
+                send_otp_email.delay(user.id, confirmation_code)
+                
                 return Response({
-                    "message": "User needs confirmation. New code generated.",
+                    "message": "User needs confirmation. New code sent to your email.",
                     "user_id": user.id,
-                    "confirmation_code": confirmation_code,  # In production, remove this
                     "expires_in": "5 minutes"
                 })
             else:
                 return Response({
-                    "message": "User needs confirmation.",
+                    "message": "User needs confirmation. Check your email for the code.",
                     "user_id": user.id
                 })
        

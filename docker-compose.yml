@@ -37,6 +37,39 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+    
+  celery_worker:
+    build: .
+    restart: always
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+      - db
+    command: celery -A shop_api worker --loglevel=info
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+
+  celery_beat:
+    build: .
+    restart: always
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+      - db
+      - celery_worker
+    command: celery -A shop_api beat --loglevel=info
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
 
 volumes:
   postgres_data:

@@ -2,11 +2,24 @@ from rest_framework import serializers
 from .models import User, ConfirmationCode
 from django.contrib.auth import authenticate
 import random
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        # Add birth_date and is_adult claims to token
+        token['birth_date'] = user.birth_date.isoformat() if user.birth_date else None
+        token['is_adult'] = user.is_adult
+        
+        return token
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'password', 'email']
+        fields = ['username', 'password', 'email', 'birth_date']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -19,7 +32,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         # Generate 6-digit code
         code = f"{random.randint(100000, 999999)}"
         ConfirmationCode.objects.create(user=user, code=code)
-        # You could send the code to email here
+        
+        # Use Celery task to send OTP email asynchronously
+        from .tasks import send_otp_email
+        send_otp_email.delay(user.id, code)
+        
         return user
 
 class LoginSerializer(serializers.Serializer):

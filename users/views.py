@@ -1,8 +1,9 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import RegisterSerializer, LoginSerializer, ConfirmSerializer
+from .serializers import RegisterSerializer, LoginSerializer, ConfirmSerializer, CustomTokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 class RegisterView(APIView):
     def post(self, request):
@@ -31,3 +32,6 @@ class ConfirmUserView(APIView):
             user = serializer.save()
             return Response({"message": "User confirmed successfully"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
